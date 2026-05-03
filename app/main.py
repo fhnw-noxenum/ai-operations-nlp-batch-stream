@@ -3,7 +3,13 @@ from typing import List
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import PlainTextResponse, StreamingResponse
-from prometheus_client import Counter, Gauge, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import (
+    Counter,
+    Gauge,
+    Histogram,
+    generate_latest,
+    CONTENT_TYPE_LATEST,
+)
 from pydantic import BaseModel, Field
 
 from app.batcher import batcher
@@ -19,22 +25,29 @@ TTFT = Histogram("llm_ttft_seconds", "Time to first token/audio", ["endpoint"])
 QUEUE_DEPTH = Gauge("llm_queue_depth", "Batch queue depth")
 BATCH_SIZE = Histogram("llm_batch_size", "Observed batch size")
 
+
 class GenerateRequest(BaseModel):
     prompt: str = Field(..., min_length=1)
     max_tokens: int = Field(80, ge=1, le=400)
+
 
 class BatchRequest(BaseModel):
     prompts: List[str] = Field(..., min_length=1, max_length=64)
     max_tokens: int = Field(80, ge=1, le=400)
 
+
 @app.get("/healthz")
 def healthz():
     return {"status": "ok"}
 
+
 @app.get("/metrics")
 def metrics():
     QUEUE_DEPTH.set(batcher.queue.qsize())
-    return PlainTextResponse(generate_latest().decode("utf-8"), media_type=CONTENT_TYPE_LATEST)
+    return PlainTextResponse(
+        generate_latest().decode("utf-8"), media_type=CONTENT_TYPE_LATEST
+    )
+
 
 @app.post("/v1/generate")
 async def generate(req: GenerateRequest):
@@ -45,6 +58,7 @@ async def generate(req: GenerateRequest):
     TOKENS.labels("sync").inc(len(text.split()))
     return {"text": text}
 
+
 @app.post("/v1/batch")
 async def batch(req: BatchRequest):
     REQS.labels("batch").inc(len(req.prompts))
@@ -52,10 +66,14 @@ async def batch(req: BatchRequest):
     start = time.perf_counter()
     # Starter: nutzt den MicroBatcher pro Request. Übung 2 verbessert dessen Scheduler.
     import asyncio
-    results = await asyncio.gather(*(batcher.submit(p, req.max_tokens) for p in req.prompts))
+
+    results = await asyncio.gather(
+        *(batcher.submit(p, req.max_tokens) for p in req.prompts)
+    )
     LATENCY.labels("batch").observe(time.perf_counter() - start)
     TOKENS.labels("batch").inc(sum(len(r.split()) for r in results))
     return {"results": results}
+
 
 @app.get("/v1/stream")
 async def stream(prompt: str = Query(..., min_length=1), max_tokens: int = 80):
@@ -69,16 +87,9 @@ async def stream(prompt: str = Query(..., min_length=1), max_tokens: int = 80):
         # - Tokens einzeln als SSE Frames senden: data: <token>\n\n
         # - TTFT beim ersten Token messen.
         # - Am Ende data: [DONE]\n\n senden.
-        async for token in model.stream(prompt, max_tokens=max_tokens):
-            if first:
-                TTFT.labels("stream").observe(time.perf_counter() - start)
-                first = False
-            TOKENS.labels("stream").inc(1)
-            yield f"data: {token}\n\n"
-        LATENCY.labels("stream").observe(time.perf_counter() - start)
-        yield "data: [DONE]\n\n"
 
     return StreamingResponse(events(), media_type="text/event-stream")
+
 
 @app.get("/v1/audio")
 async def audio(prompt: str = Query(..., min_length=1), max_tokens: int = 80):
@@ -89,7 +100,9 @@ async def audio(prompt: str = Query(..., min_length=1), max_tokens: int = 80):
     async def events():
         nonlocal first
         # TODO Übung 4: sentence_buffer verbessern und Underrun-Metrik ergänzen.
-        async for sentence in sentence_buffer(model.stream(prompt, max_tokens=max_tokens)):
+        async for sentence in sentence_buffer(
+            model.stream(prompt, max_tokens=max_tokens)
+        ):
             async for chunk in tts_mock(sentence):
                 if first:
                     TTFT.labels("audio").observe(time.perf_counter() - start)
