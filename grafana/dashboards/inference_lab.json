@@ -1,0 +1,28 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {"type":"timeseries","title":"API Request Rate","gridPos":{"x":0,"y":0,"w":8,"h":7},"targets":[{"datasource":{"type":"prometheus","uid":"Prometheus"},"expr":"sum(rate(llm_requests_total[1m])) by (endpoint)","legendFormat":"{{endpoint}}"}]},
+    {"type":"timeseries","title":"p95 Request Latency","gridPos":{"x":8,"y":0,"w":8,"h":7},"targets":[{"datasource":{"type":"prometheus","uid":"Prometheus"},"expr":"histogram_quantile(0.95, sum(rate(llm_request_seconds_bucket[1m])) by (le, endpoint))","legendFormat":"{{endpoint}}"}]},
+    {"type":"timeseries","title":"p95 TTFT / TTFA","gridPos":{"x":16,"y":0,"w":8,"h":7},"targets":[{"datasource":{"type":"prometheus","uid":"Prometheus"},"expr":"histogram_quantile(0.95, sum(rate(llm_ttft_seconds_bucket[1m])) by (le, endpoint))","legendFormat":"{{endpoint}}"}]},
+    {"type":"timeseries","title":"Tokens / sec","gridPos":{"x":0,"y":7,"w":8,"h":7},"targets":[{"datasource":{"type":"prometheus","uid":"Prometheus"},"expr":"sum(rate(llm_tokens_total[1m])) by (endpoint)","legendFormat":"{{endpoint}}"}]},
+    {"type":"timeseries","title":"Queue Depth","gridPos":{"x":8,"y":7,"w":8,"h":7},"targets":[{"datasource":{"type":"prometheus","uid":"Prometheus"},"expr":"llm_queue_depth","legendFormat":"queue"}]},
+    {"type":"timeseries","title":"Observed Batch Size p95","gridPos":{"x":16,"y":7,"w":8,"h":7},"targets":[{"datasource":{"type":"prometheus","uid":"Prometheus"},"expr":"histogram_quantile(0.95, sum(rate(llm_batch_size_bucket[1m])) by (le))","legendFormat":"batch size"}]},
+    {"type":"timeseries","title":"k6 HTTP Duration p95 (optional)","gridPos":{"x":0,"y":14,"w":12,"h":7},"targets":[{"datasource":{"type":"prometheus","uid":"Prometheus"},"expr":"histogram_quantile(0.95, sum(rate(k6_http_req_duration_seconds_bucket[1m])) by (le))","legendFormat":"http p95"}]},
+    {"type":"timeseries","title":"k6 custom TTFT/TTFA proxy (optional)","gridPos":{"x":12,"y":14,"w":12,"h":7},"targets":[{"datasource":{"type":"prometheus","uid":"Prometheus"},"expr":"avg(k6_ttft_proxy_ms)","legendFormat":"ttft proxy"},{"datasource":{"type":"prometheus","uid":"Prometheus"},"expr":"avg(k6_ttfa_proxy_ms)","legendFormat":"ttfa proxy"}]}
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["inference", "k6", "batch", "stream"],
+  "templating": { "list": [] },
+  "time": { "from": "now-15m", "to": "now" },
+  "timezone": "browser",
+  "title": "Batch & Stream Inference Lab",
+  "uid": "batch-stream-inference-lab",
+  "version": 1,
+  "weekStart": ""
+}

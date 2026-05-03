@@ -1,0 +1,93 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      MODEL_ID: "HuggingFaceTB/SmolLM2-135M-Instruct"
+      MODEL_DEVICE: "cpu"
+      MODEL_DTYPE: "float32"
+      TORCH_NUM_THREADS: "2"
+      MAX_INPUT_TOKENS: "512"
+      DO_SAMPLE: "false"
+      BATCH_WINDOW_MS: "15"
+      MAX_BATCH_SIZE: "8"
+      MAX_QUEUE_SIZE: "128"
+      HF_HOME: "/models"
+      TRANSFORMERS_CACHE: "/models"
+      TOKENIZERS_PARALLELISM: "false"
+    volumes:
+      - ./app:/app/app
+      - ./scripts:/app/scripts
+      - hf-cache:/models
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.enable-remote-write-receiver"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+
+  k6-sync:
+    image: grafana/k6:0.54.0
+    profiles: ["load"]
+    environment:
+      BASE_URL: http://api:8000
+      K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9090/api/v1/write
+    command: ["run", "-o", "experimental-prometheus-rw", "/scripts/sync.js"]
+    volumes:
+      - ./k6:/scripts
+    depends_on: [api, prometheus]
+
+  k6-batch:
+    image: grafana/k6:0.54.0
+    profiles: ["load"]
+    environment:
+      BASE_URL: http://api:8000
+      K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9090/api/v1/write
+    command: ["run", "-o", "experimental-prometheus-rw", "/scripts/batch.js"]
+    volumes:
+      - ./k6:/scripts
+    depends_on: [api, prometheus]
+
+  k6-stream:
+    image: grafana/k6:0.54.0
+    profiles: ["load"]
+    environment:
+      BASE_URL: http://api:8000
+      K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9090/api/v1/write
+    command: ["run", "-o", "experimental-prometheus-rw", "/scripts/stream.js"]
+    volumes:
+      - ./k6:/scripts
+    depends_on: [api, prometheus]
+
+  k6-tts:
+    image: grafana/k6:0.54.0
+    profiles: ["load"]
+    environment:
+      BASE_URL: http://api:8000
+      K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9090/api/v1/write
+    command: ["run", "-o", "experimental-prometheus-rw", "/scripts/tts.js"]
+    volumes:
+      - ./k6:/scripts
+    depends_on: [api, prometheus]
+
+volumes:
+  hf-cache:
