@@ -19,6 +19,35 @@ docker compose up --build api prometheus grafana
 - Prometheus: <http://localhost:9090>
 - Grafana: <http://localhost:3000> (admin / admin)
 
+## Python Script Tests
+
+See: https://docs.python.org/3/library/venv.html
+
+### venv erstellen:
+```bash
+python -m venv .venv
+```
+
+### venv aktivieren (Windows):
+```bash
+.\.venv\Scripts\activate
+```
+
+### venv aktivieren (Mac / Linux):
+```bash
+source venv/bin/activate
+```
+
+### Install dependency (httpx):
+```bash
+pip install httpx
+```
+
+### Run test:
+```bash
+python scripts/client_sync.py --n 20
+```
+
 ## Lokales Modell
 
 Die API nutzt jetzt ein echtes lokales Hugging-Face/Transformers-Modell.
