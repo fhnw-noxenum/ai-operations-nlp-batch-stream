@@ -83,10 +83,14 @@ async def stream(prompt: str = Query(..., min_length=1), max_tokens: int = 80):
 
     async def events():
         nonlocal first
-        # TODO Übung 3:
-        # - Tokens einzeln als SSE Frames senden: data: <token>\n\n
-        # - TTFT beim ersten Token messen.
-        # - Am Ende data: [DONE]\n\n senden.
+        async for token in model.stream(prompt, max_tokens=max_tokens):
+            if first:
+                TTFT.labels("stream").observe(time.perf_counter() - start)
+                first = False
+            TOKENS.labels("stream").inc(1)
+            yield f"data: {token}\n\n"
+        LATENCY.labels("stream").observe(time.perf_counter() - start)
+        yield "data: [DONE]\n\n"
 
     return StreamingResponse(events(), media_type="text/event-stream")
 
