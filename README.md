@@ -72,7 +72,6 @@ Hinweis: Mit CPU sind k6-Lasttests deutlich langsamer. Für Unterrichtsmessungen
 1. `baseline`: synchrone API messen
 2. `batch`: Microbatching in `app/batcher.py` ergänzen
 3. `stream`: SSE Token-Streaming in `app/main.py` ergänzen
-4. `tts`: Satzpuffer und Audio-Chunking in `app/tts_mock.py` ergänzen
 
 Starter-Code enthält TODOs. Musterlösungen liegen in `solutions/app/`.
 
@@ -84,5 +83,4 @@ Ergänze `results/*.md` mit Messwerten, Screenshot-Hinweisen und kurzer Trade-of
 docker compose --profile load run --rm k6-sync
 docker compose --profile load run --rm k6-batch
 docker compose --profile load run --rm k6-stream
-docker compose --profile load run --rm k6-tts
 ```

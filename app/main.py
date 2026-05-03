@@ -14,14 +14,13 @@ from pydantic import BaseModel, Field
 
 from app.batcher import batcher
 from app.model import model
-from app.tts_mock import audio_event, sentence_buffer, tts_mock
 
 app = FastAPI(title="Batch & Stream Inference Lab")
 
 REQS = Counter("llm_requests_total", "LLM requests", ["endpoint"])
 TOKENS = Counter("llm_tokens_total", "Output tokens", ["endpoint"])
 LATENCY = Histogram("llm_request_seconds", "Request latency", ["endpoint"])
-TTFT = Histogram("llm_ttft_seconds", "Time to first token/audio", ["endpoint"])
+TTFT = Histogram("llm_ttft_seconds", "Time to first token", ["endpoint"])
 QUEUE_DEPTH = Gauge("llm_queue_depth", "Batch queue depth")
 BATCH_SIZE = Histogram("llm_batch_size", "Observed batch size")
 
@@ -87,28 +86,5 @@ async def stream(prompt: str = Query(..., min_length=1), max_tokens: int = 80):
         # - Tokens einzeln als SSE Frames senden: data: <token>\n\n
         # - TTFT beim ersten Token messen.
         # - Am Ende data: [DONE]\n\n senden.
-
-    return StreamingResponse(events(), media_type="text/event-stream")
-
-
-@app.get("/v1/audio")
-async def audio(prompt: str = Query(..., min_length=1), max_tokens: int = 80):
-    REQS.labels("audio").inc()
-    start = time.perf_counter()
-    first = True
-
-    async def events():
-        nonlocal first
-        # TODO Übung 4: sentence_buffer verbessern und Underrun-Metrik ergänzen.
-        async for sentence in sentence_buffer(
-            model.stream(prompt, max_tokens=max_tokens)
-        ):
-            async for chunk in tts_mock(sentence):
-                if first:
-                    TTFT.labels("audio").observe(time.perf_counter() - start)
-                    first = False
-                yield audio_event(chunk)
-        LATENCY.labels("audio").observe(time.perf_counter() - start)
-        yield "data: [DONE]\n\n"
 
     return StreamingResponse(events(), media_type="text/event-stream")
