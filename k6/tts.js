@@ -1,14 +1,18 @@
-import http from 'k6/http';
 import { check, sleep } from 'k6';
+import http from 'k6/http';
 import { Trend } from 'k6/metrics';
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8000';
 const ttfaProxy = new Trend('ttfa_proxy_ms');
 
 export const options = {
-  scenarios: { tts: { executor: 'ramping-vus', stages: [
-    { duration: '20s', target: 3 }, { duration: '40s', target: 10 }, { duration: '20s', target: 0 }
-  ]}},
+  scenarios: {
+    tts: {
+      executor: 'ramping-vus', stages: [
+        { duration: '20s', target: 3 }, { duration: '40s', target: 10 }, { duration: '20s', target: 0 }
+      ]
+    }
+  },
   thresholds: { ttfa_proxy_ms: ['p(95)<1800'], http_req_failed: ['rate<0.02'] },
 };
 
