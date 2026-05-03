@@ -1,6 +1,8 @@
 import { check, sleep } from 'k6';
 import http from 'k6/http';
 
+const BATCH_SIZE = 4
+
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8000';
 export const options = {
   scenarios: {
@@ -14,9 +16,9 @@ export const options = {
 };
 
 export default function () {
-  const prompts = Array.from({ length: 4 }, (_, i) => `batch prompt ${__VU}-${__ITER}-${i}`);
+  const prompts = Array.from({ length: BATCH_SIZE }, (_, i) => `batch prompt ${__VU}-${__ITER}-${i}`);
   const payload = JSON.stringify({ prompts, max_tokens: 40 });
   const res = http.post(`${BASE_URL}/v1/batch`, payload, { headers: { 'Content-Type': 'application/json' } });
-  check(res, { '200': r => r.status === 200, '4 results': r => (r.json('results') || []).length === 4 });
+  check(res, { '200': r => r.status === 200, "all results": r => (r.json('results') || []).length === BATCH_SIZE });
   sleep(0.2);
 }
