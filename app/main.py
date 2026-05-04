@@ -4,11 +4,11 @@ from typing import List
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import PlainTextResponse, StreamingResponse
 from prometheus_client import (
+    CONTENT_TYPE_LATEST,
     Counter,
     Gauge,
     Histogram,
     generate_latest,
-    CONTENT_TYPE_LATEST,
 )
 from pydantic import BaseModel, Field
 
@@ -17,10 +17,39 @@ from app.model import model
 
 app = FastAPI(title="Batch & Stream Inference Lab")
 
+LATENCY_BUCKETS = (
+    0.05,
+    0.1,
+    0.25,
+    0.5,  # very fast requests
+    1,
+    2.5,
+    5,
+    7.5,
+    10,  # normal/slower API calls
+    15,
+    20,
+    30,
+    45,
+    60,  # slow local LLM generation
+    90,
+    120,  # very slow CPU/model runs
+)
+
 REQS = Counter("llm_requests_total", "LLM requests", ["endpoint"])
 TOKENS = Counter("llm_tokens_total", "Output tokens", ["endpoint"])
-LATENCY = Histogram("llm_request_seconds", "Request latency", ["endpoint"])
-TTFT = Histogram("llm_ttft_seconds", "Time to first token", ["endpoint"])
+LATENCY = Histogram(
+    "llm_request_seconds",
+    "Request latency",
+    ["endpoint"],
+    buckets=LATENCY_BUCKETS,
+)
+TTFT = Histogram(
+    "llm_ttft_seconds",
+    "Time to first token",
+    ["endpoint"],
+    buckets=LATENCY_BUCKETS,
+)
 QUEUE_DEPTH = Gauge("llm_queue_depth", "Batch queue depth")
 BATCH_SIZE = Histogram("llm_batch_size", "Observed batch size")
 
