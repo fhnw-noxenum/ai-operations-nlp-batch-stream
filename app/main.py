@@ -36,6 +36,8 @@ LATENCY_BUCKETS = (
     120,  # very slow CPU/model runs
 )
 
+BATCH_SIZE_BUCKETS = tuple(range(1, 65))
+
 REQS = Counter("llm_requests_total", "LLM requests", ["endpoint"])
 TOKENS = Counter("llm_tokens_total", "Output tokens", ["endpoint"])
 LATENCY = Histogram(
@@ -51,7 +53,9 @@ TTFT = Histogram(
     buckets=LATENCY_BUCKETS,
 )
 QUEUE_DEPTH = Gauge("llm_queue_depth", "Batch queue depth")
-BATCH_SIZE = Histogram("llm_batch_size", "Observed batch size")
+BATCH_SIZE = Histogram(
+    "llm_batch_size", "Observed batch size", buckets=BATCH_SIZE_BUCKETS
+)
 
 
 class GenerateRequest(BaseModel):
