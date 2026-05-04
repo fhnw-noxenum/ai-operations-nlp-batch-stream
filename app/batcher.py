@@ -11,7 +11,11 @@ BATCH_WINDOW_MS = int(os.getenv("BATCH_WINDOW_MS", "15"))
 MAX_BATCH_SIZE = int(os.getenv("MAX_BATCH_SIZE", "8"))
 MAX_QUEUE_SIZE = int(os.getenv("MAX_QUEUE_SIZE", "128"))
 
-MICROBATCH_SIZE = Histogram("llm_microbatch_size", "Observed microbatch size")
+BATCH_SIZE_BUCKETS = tuple(range(1, 65))
+
+MICROBATCH_SIZE = Histogram(
+    "llm_microbatch_size", "Observed microbatch size", buckets=BATCH_SIZE_BUCKETS
+)
 
 
 @dataclass
